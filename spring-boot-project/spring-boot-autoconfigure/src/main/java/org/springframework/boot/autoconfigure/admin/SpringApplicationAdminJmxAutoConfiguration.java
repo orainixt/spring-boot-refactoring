@@ -20,7 +20,7 @@ import javax.management.MalformedObjectNameException;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.admin.SpringApplicationAdminMXBean;
-import org.springframework.boot.admin.SpringApplicationAdminMXBeanRegistrar;
+import org.springframework.boot.admin.RegisterSprigApplicationAdminMXBeanOnPlatform;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -55,7 +55,7 @@ public class SpringApplicationAdminJmxAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public SpringApplicationAdminMXBeanRegistrar springApplicationAdminRegistrar(
+	public RegisterSpringApplicationAdminMXBeanOnPlatform springApplicationAdminRegistrar(
 			ObjectProvider<MBeanExporter> mbeanExporters, Environment environment) throws MalformedObjectNameException {
 		String jmxName = environment.getProperty(JMX_NAME_PROPERTY, DEFAULT_JMX_NAME);
 		if (mbeanExporters != null) { // Make sure to not register that MBean twice
@@ -63,7 +63,7 @@ public class SpringApplicationAdminJmxAutoConfiguration {
 				mbeanExporter.addExcludedBean(jmxName);
 			}
 		}
-		return new SpringApplicationAdminMXBeanRegistrar(jmxName);
+		return new RegisterSpringApplicationAdminMXBeanOnPlatform(jmxName);
 	}
 
 }

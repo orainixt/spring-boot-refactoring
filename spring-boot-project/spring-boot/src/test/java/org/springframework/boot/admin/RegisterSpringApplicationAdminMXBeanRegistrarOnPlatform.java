@@ -41,12 +41,12 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.mock;
 
 /**
- * Tests for {@link SpringApplicationAdminMXBeanRegistrar}.
+ * Tests for {@link RegisterSpringApplicationAdminMXBeanOnPlatform}.
  *
  * @author Stephane Nicoll
  * @author Andy Wilkinson
  */
-class SpringApplicationAdminMXBeanRegistrarTests {
+class RegisterSpringApplicationAdminMXBeanRegistrarOnPlatformTests {
 
 	private static final String OBJECT_NAME = "org.springframework.boot:type=Test,name=SpringApplication";
 
@@ -85,7 +85,7 @@ class SpringApplicationAdminMXBeanRegistrarTests {
 
 	@Test
 	void eventsFromOtherContextsAreIgnored() throws MalformedObjectNameException {
-		SpringApplicationAdminMXBeanRegistrar registrar = new SpringApplicationAdminMXBeanRegistrar(OBJECT_NAME);
+		RegisterSpringApplicationAdminMXBeanOnPlatform registrar = new RegisterSpringApplicationAdminMXBeanOnPlatform(OBJECT_NAME);
 		ConfigurableApplicationContext context = mock(ConfigurableApplicationContext.class);
 		registrar.setApplicationContext(context);
 		registrar.onApplicationReadyEvent(new ApplicationReadyEvent(new SpringApplication(), null,
@@ -95,7 +95,7 @@ class SpringApplicationAdminMXBeanRegistrarTests {
 		assertThat(isApplicationReady(registrar)).isTrue();
 	}
 
-	private boolean isApplicationReady(SpringApplicationAdminMXBeanRegistrar registrar) {
+	private boolean isApplicationReady(RegisterSpringApplicationAdminMXBeanOnPlatform registrar) {
 		return (Boolean) ReflectionTestUtils.getField(registrar, "ready");
 	}
 
@@ -176,8 +176,8 @@ class SpringApplicationAdminMXBeanRegistrarTests {
 	static class Config {
 
 		@Bean
-		SpringApplicationAdminMXBeanRegistrar springApplicationAdminRegistrar() throws MalformedObjectNameException {
-			return new SpringApplicationAdminMXBeanRegistrar(OBJECT_NAME);
+		RegisterSpringApplicationAdminMXBeanOnPlatform springApplicationAdminRegistrar() throws MalformedObjectNameException {
+			return new RegisterSpringApplicationAdminMXBeanOnPlatform(OBJECT_NAME);
 		}
 
 	}

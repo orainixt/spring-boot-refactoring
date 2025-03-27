@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.boot.WebApplicationType;
-import org.springframework.boot.admin.SpringApplicationAdminMXBeanRegistrar;
+import org.springframework.boot.admin.RegisterSprigApplicationAdminMXBeanOnPlatform;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryAutoConfiguration;
@@ -132,9 +132,9 @@ class SpringApplicationAdminJmxAutoConfigurationTests {
 			.web(WebApplicationType.NONE);
 		try (ConfigurableApplicationContext parent = parentBuilder.run("--" + ENABLE_ADMIN_PROP);
 				ConfigurableApplicationContext child = childBuilder.run("--" + ENABLE_ADMIN_PROP)) {
-			BeanFactoryUtils.beanOfType(parent.getBeanFactory(), SpringApplicationAdminMXBeanRegistrar.class);
+			BeanFactoryUtils.beanOfType(parent.getBeanFactory(), RegisterSpringApplicationAdminMXBeanOnPlatform.class);
 			assertThatExceptionOfType(NoSuchBeanDefinitionException.class).isThrownBy(() -> BeanFactoryUtils
-				.beanOfType(child.getBeanFactory(), SpringApplicationAdminMXBeanRegistrar.class));
+				.beanOfType(child.getBeanFactory(), RegisterSpringApplicationAdminMXBeanOnPlatform.class));
 		}
 	}
 

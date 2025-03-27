@@ -50,7 +50,7 @@ import org.springframework.util.Assert;
  * @author Andy Wilkinson
  * @since 1.3.0
  */
-public class RegisterSpringApplicationAdminMXBeanRegistrarOnPlatform implements ApplicationContextAware, GenericApplicationListener,
+public class RegisterSprigApplicationAdminMXBeanOnPlatform implements ApplicationContextAware, GenericApplicationListener,
 		EnvironmentAware, InitializingBean, DisposableBean {
 
 	private static final Log logger = LogFactory.getLog(SpringApplicationAdmin.class);
@@ -65,7 +65,7 @@ public class RegisterSpringApplicationAdminMXBeanRegistrarOnPlatform implements 
 
 	private boolean embeddedWebApplication = false;
 
-	public RegisterSpringApplicationAdminMXBeanRegistrarOnPlatform(String name) throws MalformedObjectNameException {
+	public RegisterSprigApplicationAdminMXBeanOnPlatform(String name) throws MalformedObjectNameException {
 		this.objectName = new ObjectName(name);
 	}
 
@@ -141,23 +141,23 @@ public class RegisterSpringApplicationAdminMXBeanRegistrarOnPlatform implements 
 
 		@Override
 		public boolean isReady() {
-			return RegisterSpringApplicationAdminMXBeanRegistrarOnPlatform.this.ready;
+			return RegisterSpringApplicationAdminMXBeanOnPlatform.this.ready;
 		}
 
 		@Override
 		public boolean isEmbeddedWebApplication() {
-			return RegisterSpringApplicationAdminMXBeanRegistrarOnPlatform.this.embeddedWebApplication;
+			return RegisterSprigApplicationAdminMXBeanOnPlatform.this.embeddedWebApplication;
 		}
 
 		@Override
 		public String getProperty(String key) {
-			return RegisterSpringApplicationAdminMXBeanRegistrarOnPlatform.this.environment.getProperty(key);
+			return RegisterSprigApplicationAdminMXBeanOnPlatform.this.environment.getProperty(key);
 		}
 
 		@Override
 		public void shutdown() {
 			logger.info("Application shutdown requested.");
-			RegisterSpringApplicationAdminMXBeanRegistrarOnPlatform.this.applicationContext.close();
+			RegisterSprigApplicationAdminMXBeanOnPlatform.this.applicationContext.close();
 		}
 
 	}
