@@ -168,14 +168,14 @@ public final class CorrelationIdFormatter {
 	record Part(String name, int length) {
 
 		private static final Pattern pattern = Pattern.compile("^(.+?)\\((\\d+)\\)$");
-
+		private int padding_min = 0;
 		String resolve(UnaryOperator<String> resolver) {
 			String resolved = resolver.apply(name());
 			if (resolved == null) {
 				return blank();
 			}
 			int padding = length() - resolved.length();
-			return (padding <= 0) ? resolved : resolved + " ".repeat(padding);
+			return (padding <= padding_min) ? resolved : resolved + " ".repeat(padding);
 		}
 
 		String blank() {
@@ -188,13 +188,13 @@ public final class CorrelationIdFormatter {
 		}
 
 		static Part of(String part) {
+			private int name_pat = 1;
+			private int length_pat = 2;
 			Matcher matcher = pattern.matcher(part.trim());
 			Assert.state(matcher.matches(), () -> "Invalid specification part '%s'".formatted(part));
-			String name = matcher.group(1);
-			int length = Integer.parseInt(matcher.group(2));
+			String name = matcher.group(name_pat);
+			int length = Integer.parseInt(matcher.group(length_pat));
 			return new Part(name, length);
 		}
-
 	}
-
 }
