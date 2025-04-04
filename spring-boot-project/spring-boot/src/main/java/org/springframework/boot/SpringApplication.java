@@ -627,17 +627,6 @@ public class SpringApplication {
 	}
 
 	/**
-	 * Called to log startup information, subclasses may override to add additional
-	 * logging.
-	 * @param isRoot true if this application is the root of a context hierarchy
-	 * @deprecated since 3.4.0 for removal in 3.6.0 in favor of
-	 * {@link #logStartupInfo(ConfigurableApplicationContext)}
-	 */
-	@Deprecated(since = "3.4.0", forRemoval = true)
-	protected void logStartupInfo(boolean isRoot) {
-	}
-
-	/**
 	 * Called to log active profile information.
 	 * @param context the application context
 	 */
@@ -752,13 +741,6 @@ public class SpringApplication {
 		applicationContext.refresh();
 	}
 
-	/**
-	 * Called after the context has been refreshed.
-	 * @param context the application context
-	 * @param args the application arguments
-	 */
-	protected void afterRefresh(ConfigurableApplicationContext context, ApplicationArguments args) {
-	}
 
 	private void callRunners(ConfigurableApplicationContext context, ApplicationArguments args) {
 		ConfigurableListableBeanFactory beanFactory = context.getBeanFactory();
