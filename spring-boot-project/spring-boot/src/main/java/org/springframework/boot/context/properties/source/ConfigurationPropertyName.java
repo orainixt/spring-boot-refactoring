@@ -954,27 +954,43 @@ public final class ConfigurationPropertyName implements Comparable<Configuration
 			return new Elements(this.source, this.size, this.start, this.end, this.type, this.resolved);
 		}
 
-		private ElementType updateType(ElementType existingType, char ch, int index) {
-			if (existingType.isIndexed()) {
-				if (existingType == ElementType.NUMERICALLY_INDEXED && !isNumeric(ch)) {
-					return ElementType.INDEXED;
-				}
-				return existingType;
+		private ElementType updateType(ElementType existingType, char ch, int index){
+			if (isIndexed(existingType)) {
+				return handleIndexed(existingType, ch);
 			}
-			if (existingType == ElementType.EMPTY && isValidChar(ch, index)) {
-				return (index == 0) ? ElementType.UNIFORM : ElementType.NON_UNIFORM;
+			if (isEmpty(existingType)){
+				return handleEmpty(ch, index);
 			}
-			if (existingType == ElementType.UNIFORM && ch == '-') {
+			if (isUniform(existingType,ch)){
 				return ElementType.DASHED;
-			}
-			if (!isValidChar(ch, index)) {
-				if (existingType == ElementType.EMPTY && !isValidChar(Character.toLowerCase(ch), index)) {
-					return ElementType.EMPTY;
-				}
-				return ElementType.NON_UNIFORM;
 			}
 			return existingType;
 		}
+
+		private boolean isIndexed(ElementType type){
+			return type.isIndexed();
+		}
+		private ElementType handleIndexed(ElementType type, char ch){
+			return (type == ElementType.NUMERICALLY_INDEXED && !isNumeric(ch)) ? ElementType.INDEXED : type;
+		}
+
+		private boolean isEmpty(ElementType type){
+			return type == ElementType.EMPTY;
+		}
+		private ElementType handleEmpty(char ch, int index){
+			if (isValidChar(ch,index)){
+				return (index == 0) ? ElementType.UNIFORM : ElementType.NON_UNIFORM;
+			}
+			if (!isValidChar(Character.toLowerCase(ch),index)){
+				return ElementType.EMPTY;
+			}
+			return ElementType.NON_UNIFORM;
+		}
+
+		private boolean isUniform(ElementType type, char ch){
+			return type == ElementType.UNIFORM && ch == '-';
+		}
+
 
 		private void add(int start, int end, ElementType type, Function<CharSequence, CharSequence> valueProcessor) {
 			if ((end - start) < 1 || type == ElementType.EMPTY) {
