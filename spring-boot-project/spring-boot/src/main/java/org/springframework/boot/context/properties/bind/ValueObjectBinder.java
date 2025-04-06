@@ -38,7 +38,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import org.springframework.beans.BeanUtils;
-import org.springframework.boot.context.properties.bind.Binder.Context;
+import org.springframework.boot.context.properties.bind.Context;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
 import org.springframework.core.CollectionFactory;
 import org.springframework.core.DefaultParameterNameDiscoverer;
@@ -71,7 +71,7 @@ class ValueObjectBinder implements DataObjectBinder {
 	}
 
 	@Override
-	public <T> T bind(ConfigurationPropertyName name, Bindable<T> target, Binder.Context context,
+	public <T> T bind(ConfigurationPropertyName name, Bindable<T> target, Context context,
 			DataObjectPropertyBinder propertyBinder) {
 		ValueObject<T> valueObject = ValueObject.get(target, this.constructorProvider, context, Discoverer.LENIENT);
 		if (valueObject == null) {
@@ -93,7 +93,7 @@ class ValueObjectBinder implements DataObjectBinder {
 	}
 
 	@Override
-	public <T> T create(Bindable<T> target, Binder.Context context) {
+	public <T> T create(Bindable<T> target, Context context) {
 		ValueObject<T> valueObject = ValueObject.get(target, this.constructorProvider, context, Discoverer.LENIENT);
 		if (valueObject == null) {
 			return null;
@@ -116,7 +116,7 @@ class ValueObjectBinder implements DataObjectBinder {
 		}
 	}
 
-	private <T> T getDefaultValue(Binder.Context context, ConstructorParameter parameter) {
+	private <T> T getDefaultValue(Context context, ConstructorParameter parameter) {
 		ResolvableType type = parameter.getType();
 		Annotation[] annotations = parameter.getAnnotations();
 		for (Annotation annotation : annotations) {
@@ -146,7 +146,7 @@ class ValueObjectBinder implements DataObjectBinder {
 	}
 
 	@SuppressWarnings("unchecked")
-	private <T> T getNewDefaultValueInstanceIfPossible(Binder.Context context, ResolvableType type) {
+	private <T> T getNewDefaultValueInstanceIfPossible(Context context, ResolvableType type) {
 		Class<T> resolved = (Class<T>) type.resolve();
 		Assert.state(resolved == null || isEmptyDefaultValueAllowed(resolved),
 				() -> "Parameter of type " + type + " must have a non-empty default value.");
@@ -205,7 +205,7 @@ class ValueObjectBinder implements DataObjectBinder {
 
 		@SuppressWarnings("unchecked")
 		static <T> ValueObject<T> get(Bindable<T> bindable, BindConstructorProvider constructorProvider,
-				Binder.Context context, ParameterNameDiscoverer parameterNameDiscoverer) {
+				Context context, ParameterNameDiscoverer parameterNameDiscoverer) {
 			Class<T> type = (Class<T>) bindable.getType().resolve();
 			if (type == null || type.isEnum() || Modifier.isAbstract(type.getModifiers())) {
 				return null;

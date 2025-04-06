@@ -23,7 +23,7 @@ import java.util.TreeSet;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.springframework.boot.context.properties.bind.Binder.Context;
+import org.springframework.boot.context.properties.bind.Context;
 import org.springframework.boot.context.properties.source.ConfigurationProperty;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName.Form;

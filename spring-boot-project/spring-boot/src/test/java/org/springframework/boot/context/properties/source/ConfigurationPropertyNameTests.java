@@ -16,6 +16,7 @@
 
 package org.springframework.boot.context.properties.source;
 
+import java.lang.annotation.ElementType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

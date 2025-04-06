@@ -33,7 +33,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.springframework.beans.BeanUtils;
-import org.springframework.boot.context.properties.bind.Binder.Context;
+import org.springframework.boot.context.properties.bind.Context;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySource;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyState;

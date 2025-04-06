@@ -16,7 +16,7 @@
 
 package org.springframework.boot.context.properties.bind;
 
-import org.springframework.boot.context.properties.bind.Binder.Context;
+import org.springframework.boot.context.properties.bind.Context;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
 
 /**

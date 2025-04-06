@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.function.Supplier;
 
-import org.springframework.boot.context.properties.bind.Binder.Context;
+import org.springframework.boot.context.properties.bind.Context;
 import org.springframework.boot.context.properties.source.ConfigurationProperty;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName.Form;

@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
-import org.springframework.boot.context.properties.bind.Binder.Context;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
 import org.springframework.core.ResolvableType;
 

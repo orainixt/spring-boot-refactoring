@@ -34,6 +34,8 @@ import java.util.function.Supplier;
 import org.springframework.beans.PropertyEditorRegistry;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.context.properties.bind.Bindable.BindRestriction;
+import org.springframework.boot.context.properties.bind.Context;
+import org.springframework.boot.context.properties.bind.BindConverter;
 import org.springframework.boot.context.properties.source.ConfigurationProperty;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySource;
@@ -56,9 +58,6 @@ import org.springframework.util.Assert;
  */
 public class Binder {
 
-	private static final Set<Class<?>> NON_BEAN_CLASSES = Collections
-		.unmodifiableSet(new HashSet<>(Arrays.asList(Object.class, Class.class)));
-
 	private final Iterable<ConfigurationPropertySource> sources;
 
 	private final PlaceholdersResolver placeholdersResolver;
@@ -69,6 +68,9 @@ public class Binder {
 
 	private final Map<BindMethod, List<DataObjectBinder>> dataObjectBinders;
 
+	private final BinderUtils binderUtils = new BinderUtils();
+
+	private final HandleBind handleBind = new HandleBind();
 	/**
 	 * Create a new {@link Binder} instance for the specified sources. A
 	 * {@link DefaultFormattingConversionService} will be used for all conversion.
@@ -204,6 +206,27 @@ public class Binder {
 		this.dataObjectBinders = Collections.unmodifiableMap(dataObjectBinders);
 	}
 
+	public BindConverter getBindConverter(){
+		return this.bindConverter;
+	}
+
+	public PlaceholdersResolver getPlaceholdersResolver() {
+		return this.placeholdersResolver;
+	}
+
+	public Iterable<ConfigurationPropertySource> getSources(){
+		return this.sources;
+	}
+
+	public Map<BindMethod, List<DataObjectBinder>> getDataObjectBinders(){
+		return this.dataObjectBinders;
+	}
+
+	public BinderUtils getBinderUtils() {
+		return this.binderUtils;
+	}
+
+
 	/**
 	 * Bind the specified target {@link Class} using this binder's
 	 * {@link ConfigurationPropertySource property sources}.
@@ -331,7 +354,7 @@ public class Binder {
 		return bind(name, target, handler, true);
 	}
 
-	private <T> T bind(ConfigurationPropertyName name, Bindable<T> target, BindHandler handler, boolean create) {
+	public <T> T bind(ConfigurationPropertyName name, Bindable<T> target, BindHandler handler, boolean create) {
 		Assert.notNull(name, "'name' must not be null");
 		Assert.notNull(target, "'target' must not be null");
 		handler = (handler != null) ? handler : this.defaultBindHandler;
@@ -339,179 +362,23 @@ public class Binder {
 		return bind(name, target, handler, context, false, create);
 	}
 
-	private <T> T bind(ConfigurationPropertyName name, Bindable<T> target, BindHandler handler, Context context,
+	public <T> T bind(ConfigurationPropertyName name, Bindable<T> target, BindHandler handler, Context context,
 			boolean allowRecursiveBinding, boolean create) {
 		try {
 			Bindable<T> replacementTarget = handler.onStart(name, target, context);
 			if (replacementTarget == null) {
-				return handleBindResult(name, target, handler, context, null, create);
+				return this.handleBind.handleBindResult(name, target, handler, context, null, create, this);
 			}
 			target = replacementTarget;
-			Object bound = bindObject(name, target, handler, context, allowRecursiveBinding);
-			return handleBindResult(name, target, handler, context, bound, create);
+			Object bound = this.binderUtils.bindObject(name, target, handler, context, allowRecursiveBinding, this);
+			return this.handleBind.handleBindResult(name, target, handler, context, bound, create, this);
 		}
 		catch (Exception ex) {
-			return handleBindError(name, target, handler, context, ex);
+			return this.handleBind.handleBindError(name, target, handler, context, ex);
 		}
 	}
 
-	private <T> T handleBindResult(ConfigurationPropertyName name, Bindable<T> target, BindHandler handler,
-			Context context, Object result, boolean create) throws Exception {
-		if (result != null) {
-			result = handler.onSuccess(name, target, context, result);
-			result = context.getConverter().convert(result, target);
-		}
-		if (result == null && create) {
-			result = fromDataObjectBinders(target.getBindMethod(),
-					(dataObjectBinder) -> dataObjectBinder.create(target, context));
-			result = handler.onCreate(name, target, context, result);
-			result = context.getConverter().convert(result, target);
-			if (result == null) {
-				IllegalStateException ex = new IllegalStateException(
-						"Unable to create instance for " + target.getType());
-				this.dataObjectBinders.get(target.getBindMethod())
-					.forEach((dataObjectBinder) -> dataObjectBinder.onUnableToCreateInstance(target, context, ex));
-				throw ex;
-			}
-		}
-		handler.onFinish(name, target, context, result);
-		return context.getConverter().convert(result, target);
-	}
 
-	private <T> T handleBindError(ConfigurationPropertyName name, Bindable<T> target, BindHandler handler,
-			Context context, Exception error) {
-		try {
-			Object result = handler.onFailure(name, target, context, error);
-			return context.getConverter().convert(result, target);
-		}
-		catch (Exception ex) {
-			if (ex instanceof BindException bindException) {
-				throw bindException;
-			}
-			throw new BindException(name, target, context.getConfigurationProperty(), ex);
-		}
-	}
-
-	private <T> Object bindObject(ConfigurationPropertyName name, Bindable<T> target, BindHandler handler,
-			Context context, boolean allowRecursiveBinding) {
-		ConfigurationProperty property = findProperty(name, target, context);
-		if (property == null && context.depth != 0 && containsNoDescendantOf(context.getSources(), name)) {
-			return null;
-		}
-		AggregateBinder<?> aggregateBinder = getAggregateBinder(target, context);
-		if (aggregateBinder != null) {
-			return bindAggregate(name, target, handler, context, aggregateBinder);
-		}
-		if (property != null) {
-			try {
-				return bindProperty(target, context, property);
-			}
-			catch (ConverterNotFoundException ex) {
-				// We might still be able to bind it using the recursive binders
-				Object instance = bindDataObject(name, target, handler, context, allowRecursiveBinding);
-				if (instance != null) {
-					return instance;
-				}
-				throw ex;
-			}
-		}
-		return bindDataObject(name, target, handler, context, allowRecursiveBinding);
-	}
-
-	private AggregateBinder<?> getAggregateBinder(Bindable<?> target, Context context) {
-		Class<?> resolvedType = target.getType().resolve(Object.class);
-		if (Map.class.isAssignableFrom(resolvedType)) {
-			return new MapBinder(context);
-		}
-		if (Collection.class.isAssignableFrom(resolvedType)) {
-			return new CollectionBinder(context);
-		}
-		if (target.getType().isArray()) {
-			return new ArrayBinder(context);
-		}
-		return null;
-	}
-
-	private <T> Object bindAggregate(ConfigurationPropertyName name, Bindable<T> target, BindHandler handler,
-			Context context, AggregateBinder<?> aggregateBinder) {
-		AggregateElementBinder elementBinder = (itemName, itemTarget, source) -> {
-			boolean allowRecursiveBinding = aggregateBinder.isAllowRecursiveBinding(source);
-			Supplier<?> supplier = () -> bind(itemName, itemTarget, handler, context, allowRecursiveBinding, false);
-			return context.withSource(source, supplier);
-		};
-		return context.withIncreasedDepth(() -> aggregateBinder.bind(name, target, elementBinder));
-	}
-
-	private <T> ConfigurationProperty findProperty(ConfigurationPropertyName name, Bindable<T> target,
-			Context context) {
-		if (name.isEmpty() || target.hasBindRestriction(BindRestriction.NO_DIRECT_PROPERTY)) {
-			return null;
-		}
-		for (ConfigurationPropertySource source : context.getSources()) {
-			ConfigurationProperty property = source.getConfigurationProperty(name);
-			if (property != null) {
-				return property;
-			}
-		}
-		return null;
-	}
-
-	private <T> Object bindProperty(Bindable<T> target, Context context, ConfigurationProperty property) {
-		context.setConfigurationProperty(property);
-		Object result = property.getValue();
-		result = this.placeholdersResolver.resolvePlaceholders(result);
-		result = context.getConverter().convert(result, target);
-		return result;
-	}
-
-	private Object bindDataObject(ConfigurationPropertyName name, Bindable<?> target, BindHandler handler,
-			Context context, boolean allowRecursiveBinding) {
-		if (isUnbindableBean(name, target, context)) {
-			return null;
-		}
-		Class<?> type = target.getType().resolve(Object.class);
-		BindMethod bindMethod = target.getBindMethod();
-		if (!allowRecursiveBinding && context.isBindingDataObject(type)) {
-			return null;
-		}
-		DataObjectPropertyBinder propertyBinder = (propertyName, propertyTarget) -> bind(name.append(propertyName),
-				propertyTarget, handler, context, false, false);
-		return context.withDataObject(type, () -> fromDataObjectBinders(bindMethod,
-				(dataObjectBinder) -> dataObjectBinder.bind(name, target, context, propertyBinder)));
-	}
-
-	private Object fromDataObjectBinders(BindMethod bindMethod, Function<DataObjectBinder, Object> operation) {
-		return this.dataObjectBinders.get(bindMethod)
-			.stream()
-			.map(operation)
-			.filter(Objects::nonNull)
-			.findFirst()
-			.orElse(null);
-	}
-
-	private boolean isUnbindableBean(ConfigurationPropertyName name, Bindable<?> target, Context context) {
-		for (ConfigurationPropertySource source : context.getSources()) {
-			if (source.containsDescendantOf(name) == ConfigurationPropertyState.PRESENT) {
-				// We know there are properties to bind so we can't bypass anything
-				return false;
-			}
-		}
-		Class<?> resolved = target.getType().resolve(Object.class);
-		if (resolved.isPrimitive() || NON_BEAN_CLASSES.contains(resolved)) {
-			return true;
-		}
-		return resolved.getName().startsWith("java.");
-	}
-
-	private boolean containsNoDescendantOf(Iterable<ConfigurationPropertySource> sources,
-			ConfigurationPropertyName name) {
-		for (ConfigurationPropertySource source : sources) {
-			if (source.containsDescendantOf(name) != ConfigurationPropertyState.ABSENT) {
-				return false;
-			}
-		}
-		return true;
-	}
 
 	/**
 	 * Create a new {@link Binder} instance from the specified environment.
@@ -537,121 +404,4 @@ public class Binder {
 		PropertySourcesPlaceholdersResolver placeholdersResolver = new PropertySourcesPlaceholdersResolver(environment);
 		return new Binder(sources, placeholdersResolver, null, null, defaultBindHandler);
 	}
-
-	/**
-	 * Context used when binding and the {@link BindContext} implementation.
-	 */
-	final class Context implements BindContext {
-
-		private int depth;
-
-		private final List<ConfigurationPropertySource> source = Arrays.asList((ConfigurationPropertySource) null);
-
-		private int sourcePushCount;
-
-		private final Deque<Class<?>> dataObjectBindings = new ArrayDeque<>();
-
-		private final Deque<Class<?>> constructorBindings = new ArrayDeque<>();
-
-		private ConfigurationProperty configurationProperty;
-
-		private void increaseDepth() {
-			this.depth++;
-		}
-
-		private void decreaseDepth() {
-			this.depth--;
-		}
-
-		private <T> T withSource(ConfigurationPropertySource source, Supplier<T> supplier) {
-			if (source == null) {
-				return supplier.get();
-			}
-			this.source.set(0, source);
-			this.sourcePushCount++;
-			try {
-				return supplier.get();
-			}
-			finally {
-				this.sourcePushCount--;
-			}
-		}
-
-		private <T> T withDataObject(Class<?> type, Supplier<T> supplier) {
-			this.dataObjectBindings.push(type);
-			try {
-				return withIncreasedDepth(supplier);
-			}
-			finally {
-				this.dataObjectBindings.pop();
-			}
-		}
-
-		private boolean isBindingDataObject(Class<?> type) {
-			return this.dataObjectBindings.contains(type);
-		}
-
-		private <T> T withIncreasedDepth(Supplier<T> supplier) {
-			increaseDepth();
-			try {
-				return supplier.get();
-			}
-			finally {
-				decreaseDepth();
-			}
-		}
-
-		void setConfigurationProperty(ConfigurationProperty configurationProperty) {
-			this.configurationProperty = configurationProperty;
-		}
-
-		void clearConfigurationProperty() {
-			this.configurationProperty = null;
-		}
-
-		void pushConstructorBoundTypes(Class<?> value) {
-			this.constructorBindings.push(value);
-		}
-
-		boolean isNestedConstructorBinding() {
-			return !this.constructorBindings.isEmpty();
-		}
-
-		void popConstructorBoundTypes() {
-			this.constructorBindings.pop();
-		}
-
-		PlaceholdersResolver getPlaceholdersResolver() {
-			return Binder.this.placeholdersResolver;
-		}
-
-		BindConverter getConverter() {
-			return Binder.this.bindConverter;
-		}
-
-		@Override
-		public Binder getBinder() {
-			return Binder.this;
-		}
-
-		@Override
-		public int getDepth() {
-			return this.depth;
-		}
-
-		@Override
-		public Iterable<ConfigurationPropertySource> getSources() {
-			if (this.sourcePushCount > 0) {
-				return this.source;
-			}
-			return Binder.this.sources;
-		}
-
-		@Override
-		public ConfigurationProperty getConfigurationProperty() {
-			return this.configurationProperty;
-		}
-
-	}
-
 }
